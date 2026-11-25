@@ -1,0 +1,22 @@
+[sandbox]
+image = "sqldoctor-pg:17"
+pg_version = 17
+port = 54329
+statement_timeout_ms = 10000
+
+[adversary]
+seed = 20261123
+max_rows_per_table = 3
+fuzz_datasets = 200
+enumeration_cap = 5000
+
+[agent]
+provider = "openai-compatible"
+model = "gemini-3.1-flash-lite"
+max_proposals = 6
+max_cost_usd = 1.00
+
+[bench]
+scales = [1000, 100000]
+repeats = 7
+interleave = true

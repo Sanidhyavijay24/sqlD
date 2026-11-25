@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sqldoctor"
+version = "0.1.0"
+description = "Agentic PostgreSQL query optimizer with deterministic verification."
+authors = [{ name = "Sanidhya Vijay", email = "sanidhyavijay2004@gmail.com" }]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.7.0,<3.0.0",
+    "typer>=0.12.0,<1.0.0",
+    "sqlglot>=25.0.0,<27.0.0",
+    "psycopg[binary]>=3.1.18,<4.0.0",
+    "docker>=7.0.0,<8.0.0",
+    "jinja2>=3.1.4,<4.0.0",
+]
+
+[project.scripts]
+sqld = "sqldoctor.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+strict = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
