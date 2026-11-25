@@ -466,7 +466,10 @@ def run_evaluation_cli(
         "all", "--suite", "-s", help="Suite to evaluate: 'traps', 'good', 'perf', or 'all'."
     ),
     baselines: bool = typer.Option(
-        True, "--baselines/--no-baselines", "-b", help="Run comparative baselines (LLM-as-judge, fixed-random)."
+        True,
+        "--baselines/--no-baselines",
+        "-b",
+        help="Run comparative baselines (LLM-as-judge, fixed-random).",
     ),
     ablations: bool = typer.Option(
         True, "--ablations/--no-ablations", "-a", help="Run adversary ablations (no_enum, no_fuzz)."
@@ -501,7 +504,9 @@ def run_evaluation_cli(
 
     runner = EvaluationRunner(config=cfg, out_dir=out_dir, llm_client=llm)
 
-    typer.echo(f"Starting SQL Doctor evaluation [suite={suite}, baselines={baselines}, ablations={ablations}]...")
+    typer.echo(
+        f"Starting SQL Doctor evaluation [suite={suite}, baselines={baselines}, ablations={ablations}]..."
+    )
     report = runner.run_evaluation(suite=suite, baselines=baselines, ablations=ablations)
 
     if json_output:

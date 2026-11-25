@@ -5,6 +5,7 @@
 """
 
 import json
+import re
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -25,8 +26,9 @@ def test_cli_diagnose_help() -> None:
     """Verify sqld diagnose --help shows options and description."""
     result = runner.invoke(app, ["diagnose", "--help"])
     assert result.exit_code == 0
-    assert "Diagnose a slow PostgreSQL query" in result.output
-    assert "--schema" in result.output
+    clean_output = re.sub(r"\x1b\[[0-9;]*m", "", result.output)
+    assert "Diagnose a slow PostgreSQL query" in clean_output
+    assert "--schema" in clean_output
 
 
 def test_cli_diagnose_json_output(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

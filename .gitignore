@@ -54,3 +54,7 @@ cache/
 
 # Ad-hoc generated receipts and reports
 results/
+
+# Local-only planning & agent ledger docs
+context.md
+SQL Doctor Build Plan.md

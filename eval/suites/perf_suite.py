@@ -25,10 +25,14 @@ def get_perf_suite_schema() -> SchemaModel:
             "c_nationkey": ColumnModel(name="c_nationkey", data_type="integer", is_nullable=False),
             "c_phone": ColumnModel(name="c_phone", data_type="varchar", is_nullable=False),
             "c_acctbal": ColumnModel(name="c_acctbal", data_type="numeric", is_nullable=False),
-            "c_mktsegment": ColumnModel(name="c_mktsegment", data_type="varchar", is_nullable=False),
+            "c_mktsegment": ColumnModel(
+                name="c_mktsegment", data_type="varchar", is_nullable=False
+            ),
         },
         constraints=[
-            ConstraintModel(name="pk_customer", type=ConstraintType.PRIMARY_KEY, columns=["c_custkey"])
+            ConstraintModel(
+                name="pk_customer", type=ConstraintType.PRIMARY_KEY, columns=["c_custkey"]
+            )
         ],
     )
 
@@ -37,13 +41,21 @@ def get_perf_suite_schema() -> SchemaModel:
         columns={
             "o_orderkey": ColumnModel(name="o_orderkey", data_type="integer", is_nullable=False),
             "o_custkey": ColumnModel(name="o_custkey", data_type="integer", is_nullable=False),
-            "o_orderstatus": ColumnModel(name="o_orderstatus", data_type="varchar", is_nullable=False),
-            "o_totalprice": ColumnModel(name="o_totalprice", data_type="numeric", is_nullable=False),
+            "o_orderstatus": ColumnModel(
+                name="o_orderstatus", data_type="varchar", is_nullable=False
+            ),
+            "o_totalprice": ColumnModel(
+                name="o_totalprice", data_type="numeric", is_nullable=False
+            ),
             "o_orderdate": ColumnModel(name="o_orderdate", data_type="varchar", is_nullable=False),
-            "o_orderpriority": ColumnModel(name="o_orderpriority", data_type="varchar", is_nullable=False),
+            "o_orderpriority": ColumnModel(
+                name="o_orderpriority", data_type="varchar", is_nullable=False
+            ),
         },
         constraints=[
-            ConstraintModel(name="pk_orders", type=ConstraintType.PRIMARY_KEY, columns=["o_orderkey"])
+            ConstraintModel(
+                name="pk_orders", type=ConstraintType.PRIMARY_KEY, columns=["o_orderkey"]
+            )
         ],
     )
 
@@ -54,11 +66,17 @@ def get_perf_suite_schema() -> SchemaModel:
             "l_partkey": ColumnModel(name="l_partkey", data_type="integer", is_nullable=False),
             "l_suppkey": ColumnModel(name="l_suppkey", data_type="integer", is_nullable=False),
             "l_quantity": ColumnModel(name="l_quantity", data_type="numeric", is_nullable=False),
-            "l_extendedprice": ColumnModel(name="l_extendedprice", data_type="numeric", is_nullable=False),
+            "l_extendedprice": ColumnModel(
+                name="l_extendedprice", data_type="numeric", is_nullable=False
+            ),
             "l_discount": ColumnModel(name="l_discount", data_type="numeric", is_nullable=False),
             "l_tax": ColumnModel(name="l_tax", data_type="numeric", is_nullable=False),
-            "l_returnflag": ColumnModel(name="l_returnflag", data_type="varchar", is_nullable=False),
-            "l_linestatus": ColumnModel(name="l_linestatus", data_type="varchar", is_nullable=False),
+            "l_returnflag": ColumnModel(
+                name="l_returnflag", data_type="varchar", is_nullable=False
+            ),
+            "l_linestatus": ColumnModel(
+                name="l_linestatus", data_type="varchar", is_nullable=False
+            ),
             "l_shipdate": ColumnModel(name="l_shipdate", data_type="varchar", is_nullable=False),
         },
     )
@@ -71,7 +89,9 @@ def get_perf_suite_schema() -> SchemaModel:
             "p_brand": ColumnModel(name="p_brand", data_type="varchar", is_nullable=False),
             "p_type": ColumnModel(name="p_type", data_type="varchar", is_nullable=False),
             "p_size": ColumnModel(name="p_size", data_type="integer", is_nullable=False),
-            "p_retailprice": ColumnModel(name="p_retailprice", data_type="numeric", is_nullable=False),
+            "p_retailprice": ColumnModel(
+                name="p_retailprice", data_type="numeric", is_nullable=False
+            ),
         },
         constraints=[
             ConstraintModel(name="pk_part", type=ConstraintType.PRIMARY_KEY, columns=["p_partkey"])
@@ -88,7 +108,9 @@ def get_perf_suite_schema() -> SchemaModel:
             "s_acctbal": ColumnModel(name="s_acctbal", data_type="numeric", is_nullable=False),
         },
         constraints=[
-            ConstraintModel(name="pk_supplier", type=ConstraintType.PRIMARY_KEY, columns=["s_suppkey"])
+            ConstraintModel(
+                name="pk_supplier", type=ConstraintType.PRIMARY_KEY, columns=["s_suppkey"]
+            )
         ],
     )
 

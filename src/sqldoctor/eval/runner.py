@@ -157,7 +157,9 @@ class EvaluationRunner:
                 else:
                     true_rejects += 1
                     verdict = "true_reject"
-                details.append({"id": cid, "verdict": verdict, "counterexample": bool(rep.counterexample)})
+                details.append(
+                    {"id": cid, "verdict": verdict, "counterexample": bool(rep.counterexample)}
+                )
 
         total = len(cases)
         accuracy = round(true_rejects / total * 100.0, 1) if total > 0 else 0.0
