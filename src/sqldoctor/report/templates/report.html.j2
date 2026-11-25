@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SQL Doctor Diagnostic Report — {{ verdict }}</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --success: #2ea043;
+      --danger: #f85149;
+      --warning: #d29922;
+      --code-bg: #090d13;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      margin: 0;
+      padding: 30px 20px;
+    }
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 20px;
+      margin-bottom: 25px;
+    }
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-tested_equivalent { background: rgba(46, 160, 67, 0.2); color: #3fb950; border: 1px solid #2ea043; }
+    .badge-rejected { background: rgba(248, 81, 73, 0.2); color: #f85149; border: 1px solid #da3633; }
+    .badge-no_op { background: rgba(88, 166, 255, 0.2); color: #58a6ff; border: 1px solid #1f6feb; }
+    .badge-conditionally_equivalent { background: rgba(210, 153, 34, 0.2); color: #d29922; border: 1px solid #9e6a03; }
+    .badge-unverified { background: rgba(139, 148, 158, 0.2); color: #8b949e; border: 1px solid #6e7681; }
+
+    .meta {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    h2 {
+      margin-top: 0;
+      font-size: 18px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      color: #f0f6fc;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 768px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px;
+      overflow-x: auto;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 13px;
+      color: #e6edf3;
+      margin: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      text-align: left;
+    }
+    th {
+      background: var(--code-bg);
+      color: #f0f6fc;
+      font-weight: 600;
+    }
+    .speedup-pill {
+      font-weight: 700;
+      color: #3fb950;
+    }
+    .footer {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+      margin-top: 40px;
+      border-top: 1px solid var(--border);
+      padding-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="title-row">
+        <h1>SQL Doctor Diagnostic Report</h1>
+        <span class="badge badge-{{ verdict|lower }}">{{ verdict }}</span>
+      </div>
+      <div class="meta">
+        Generated: {{ timestamp }} &bull; Tool: v{{ tool_version }} &bull; Target: PostgreSQL {{ pg_version }} &bull; PRNG Seed: {{ seed }}
+      </div>
+    </header>
+
+    {% if explanation %}
+    <div class="card">
+      <h2>Diagnostic Rationale & Analysis</h2>
+      <div style="white-space: pre-wrap;">{{ explanation }}</div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <h2>Query Comparison</h2>
+      <div class="grid-2">
+        <div>
+          <h3 style="font-size: 14px; color: var(--text-muted); margin-top: 0;">Original Query</h3>
+          <pre><code>{{ original_sql }}</code></pre>
+        </div>
+        <div>
+          <h3 style="font-size: 14px; color: var(--text-muted); margin-top: 0;">Candidate Rewrite</h3>
+          <pre><code>{{ candidate_sql }}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    {% if counterexample %}
+    <div class="card" style="border-left: 4px solid var(--danger);">
+      <h2 style="color: var(--danger);">Minimal Counterexample (Proof of Disparity)</h2>
+      <p><strong>Reason:</strong> {{ counterexample.reason }}</p>
+      
+      <h4 style="margin-bottom: 6px;">Minimal Separating Relational Data:</h4>
+      <pre><code>{{ counterexample.dataset | tojson(indent=2) }}</code></pre>
+
+      <div class="grid-2" style="margin-top: 15px;">
+        <div>
+          <h4 style="margin: 0 0 6px 0; font-size: 13px;">Original Query Output:</h4>
+          <pre><code>{{ counterexample.original_output | tojson(indent=2) }}</code></pre>
+        </div>
+        <div>
+          <h4 style="margin: 0 0 6px 0; font-size: 13px;">Candidate Query Output:</h4>
+          <pre><code>{{ counterexample.candidate_output | tojson(indent=2) }}</code></pre>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if benchmark %}
+    <div class="card">
+      <h2>Performance Benchmark (Buffer Access & Wall Time)</h2>
+      <p style="color: var(--text-muted); font-size: 13px;">Primary Metric: <strong>Shared Buffers (Hit + Read)</strong> &bull; Secondary Metric: <strong>Execution Wall Time (ms)</strong></p>
+      
+      <table>
+        <thead>
+          <tr>
+            <th>Scale (Rows)</th>
+            <th>Original Buffers (p50)</th>
+            <th>Candidate Buffers (p50)</th>
+            <th>Buffer Speedup</th>
+            <th>Orig Time (ms)</th>
+            <th>Cand Time (ms)</th>
+            <th>Time Speedup</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in benchmark.scales %}
+          <tr>
+            <td><strong>{{ s.scale }}</strong></td>
+            <td>{{ s.original_buffers_p50 }}</td>
+            <td>{{ s.candidate_buffers_p50 }}</td>
+            <td><span class="speedup-pill">{{ s.buffer_speedup_ratio }}x</span></td>
+            <td>{{ s.original_time_ms_p50 }} ms</td>
+            <td>{{ s.candidate_time_ms_p50 }} ms</td>
+            <td>{{ s.time_speedup_ratio }}x</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {% if benchmark.summary %}
+      <p style="margin-top: 15px; font-weight: 500;"><strong>Summary:</strong> {{ benchmark.summary }}</p>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if proposed_indexes %}
+    <div class="card">
+      <h2>Proposed Indexes</h2>
+      {% for idx in proposed_indexes %}
+      <div style="margin-bottom: 12px;">
+        <pre><code>{{ idx.index_sql if idx.index_sql is defined else idx }}</code></pre>
+        {% if idx.explanation is defined and idx.explanation %}
+        <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0 0;">{{ idx.explanation }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <h2>Verification Metadata</h2>
+      <table>
+        <tr>
+          <td><strong>Adversary Mutation Score</strong></td>
+          <td>{{ (mutants.score * 100) | round(1) if mutants and mutants.score is defined else 100.0 }}% ({{ mutants.killed if mutants else 0 }} of {{ mutants.total if mutants else 0 }} mutants killed)</td>
+        </tr>
+        <tr>
+          <td><strong>Datasets Tested</strong></td>
+          <td>{{ (datasets.enumerated + datasets.fuzz) if datasets is defined else 0 }} (enumerated: {{ datasets.enumerated if datasets is defined else 0 }}, fuzz: {{ datasets.fuzz if datasets is defined else 0 }})</td>
+        </tr>
+        <tr>
+          <td><strong>Deterministic Seed</strong></td>
+          <td><code>{{ seed }}</code></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="footer">
+      SQL Doctor &bull; Deterministic Agentic PostgreSQL Query Optimizer &bull; Standalone HTML Report
+    </div>
+  </div>
+</body>
+</html>
