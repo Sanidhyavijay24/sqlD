@@ -1,0 +1,34 @@
+[
+  {
+    "queryid": "1001",
+    "query": "SELECT c.id, c.name, o.amount FROM customers c, orders o WHERE c.id = o.customer_id AND o.status = 'completed';",
+    "calls": 1420,
+    "total_exec_time": 18450.5,
+    "mean_exec_time": 12.99,
+    "rows": 28400
+  },
+  {
+    "queryid": "1002",
+    "query": "SELECT o.customer_id, SUM(o.amount) FROM orders o WHERE o.status = 'completed' GROUP BY o.customer_id;",
+    "calls": 610,
+    "total_exec_time": 9120.0,
+    "mean_exec_time": 14.95,
+    "rows": 3050
+  },
+  {
+    "queryid": "1003",
+    "query": "SELECT id, name FROM customers WHERE country = 'IN' AND is_vip = TRUE;",
+    "calls": 950,
+    "total_exec_time": 2410.2,
+    "mean_exec_time": 2.54,
+    "rows": 4750
+  },
+  {
+    "queryid": "9999",
+    "query": "COMMIT;",
+    "calls": 5000,
+    "total_exec_time": 45.0,
+    "mean_exec_time": 0.01,
+    "rows": 0
+  }
+]

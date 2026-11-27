@@ -561,5 +561,77 @@ def run_mcp_cli(
         raise typer.Exit(code=3) from exc
 
 
+@app.command("workload")
+def run_workload_cli(
+    stats_file: Path = typer.Argument(
+        ..., help="Path to pg_stat_statements JSON or CSV export file."
+    ),
+    schema_path: Path = typer.Option(..., "--schema", "-s", help="Path to schema DDL .sql file."),
+    top_n: int = typer.Option(5, "--top", "-n", help="Diagnose the top-N slowest queries."),
+    budget: float | None = typer.Option(
+        None, "--budget", "-b", help="Global LLM cost budget in USD across the workload."
+    ),
+    config_path: Path = typer.Option(
+        Path("sqld.toml"), "--config", "-c", help="Path to sqld.toml configuration."
+    ),
+    out_path: Path | None = typer.Option(
+        None, "--out", "-o", help="Optional path to write JSON workload report."
+    ),
+    json_output: bool = typer.Option(False, "--json", help="Output raw workload report JSON."),
+) -> None:
+    """Rank pg_stat_statements by total time, diagnose top-N, and verify consolidated indexes with HypoPG."""
+    import json
+
+    from sqldoctor.sandbox.client import SandboxClient
+    from sqldoctor.schema.loader import parse_ddl_to_schema
+    from sqldoctor.workload.analyzer import WorkloadAnalyzer
+
+    if not stats_file.is_file():
+        typer.secho(f"[-] Workload export file not found: {stats_file}", fg=typer.colors.RED)
+        raise typer.Exit(code=3)
+    if not schema_path.is_file():
+        typer.secho(f"[-] Schema file not found: {schema_path}", fg=typer.colors.RED)
+        raise typer.Exit(code=3)
+
+    schema = parse_ddl_to_schema(schema_path.read_text(encoding="utf-8"))
+    cfg = load_config(config_path)
+
+    db_client: SandboxClient | None = None
+    try:
+        candidate_client = SandboxClient(cfg.sandbox)
+        candidate_client.execute_query("SELECT 1;")
+        db_client = candidate_client
+    except Exception:
+        db_client = None
+
+    analyzer = WorkloadAnalyzer(config=cfg, schema=schema, db_client=db_client)
+    report = analyzer.analyze(stats_source=stats_file, top_n=top_n, budget_usd=budget)
+
+    if out_path:
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(json.dumps(report.model_dump(), indent=2), encoding="utf-8")
+
+    if json_output:
+        typer.echo(json.dumps(report.model_dump(), indent=2))
+    else:
+        typer.echo("=" * 60)
+        typer.secho("SQL DOCTOR WORKLOAD REPORT", fg=typer.colors.CYAN, bold=True)
+        typer.echo("=" * 60)
+        typer.echo(report.summary)
+        typer.echo("\nTop Queries:")
+        for qr in report.query_results:
+            typer.echo(
+                f"  - [{qr.queryid}] {qr.total_exec_time_ms:.1f} ms ({qr.calls} calls) -> {qr.verdict}"
+            )
+        if report.consolidated_indexes:
+            typer.echo("\nConsolidated Indexes:")
+            for idx in report.consolidated_indexes:
+                sandbox_tag = "HypoPG verified" if idx.verified_in_sandbox else "offline estimate"
+                typer.secho(f"  + {idx.index_sql}", fg=typer.colors.GREEN)
+                typer.echo(
+                    f"    Helped: {idx.helped_queries} | Regressed: {idx.regressed_queries} | {sandbox_tag}"
+                )
+
+
 if __name__ == "__main__":
     app()

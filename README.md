@@ -6,12 +6,17 @@
 
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17%20%2B%20HypoPG-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Tests](https://img.shields.io/badge/Tests-121%20Passing-2EA44F?logo=pytest&logoColor=white)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-125%20Passing-2EA44F?logo=pytest&logoColor=white)](tests/)
 [![Typed](https://img.shields.io/badge/mypy-strict-blue)](pyproject.toml)
 [![Lint](https://img.shields.io/badge/ruff-clean-purple)](pyproject.toml)
+[![License](https://img.shields.io/badge/License-Apache--2.0-orange)](LICENSE)
 
 *LLMs are great at proposing SQL rewrites and indexes—and terrible at knowing when a subtle `NULL`, `LEFT JOIN`, or duplicate-row bug broke semantics.*  
 **SQL Doctor separates creativity from trust:** the LLM proposes, and deterministic relational machinery is the sole judge.
+
+<br/>
+
+![SQL Doctor Terminal Demo](docs/assets/demo.gif)
 
 </div>
 
@@ -149,6 +154,30 @@ Example `mcp_config.json` (Antigravity / Cursor / Claude Desktop):
 }
 ```
 
+### 7. Workload Mode (`sqld workload`)
+Rank a `pg_stat_statements` JSON/CSV export by total execution time, diagnose the top-$N$ queries under a global LLM cost budget, consolidate redundant indexes, and verify planner improvements with HypoPG:
+
+```bash
+sqld workload examples/pg_stat_statements.json --schema examples/schema.sql --top 3 --budget 0.50
+```
+Expose `verify_rewrite`, `diagnose_query`, and `replay_receipt` over the Model Context Protocol (`stdio` or `sse`) so any coding agent can verify SQL before shipping it:
+
+```bash
+sqld mcp --transport stdio
+```
+
+Example `mcp_config.json` (Antigravity / Cursor / Claude Desktop):
+```json
+{
+  "mcpServers": {
+    "sqld": {
+      "command": "sqld",
+      "args": ["mcp", "--transport", "stdio"]
+    }
+  }
+}
+```
+
 ---
 
 ## Evaluation Suites (`sqld eval`)
@@ -177,10 +206,10 @@ sqld eval --suite all --baselines --ablations --out-dir eval/results
 ## Quality & Test Suite
 
 ```bash
-pytest -v                       # 121 unit & integration tests
+pytest -v                       # 125 unit & integration tests
 ruff check src eval tests       # Linter
 ruff format --check src eval tests
-mypy src eval tests             # Strict type checking across 67 source files
+mypy src eval tests             # Strict type checking across 73 source files
 ```
 
 ---
@@ -209,6 +238,13 @@ sqld/
 │   ├── sandbox/            # Docker lifecycle, psycopg3 pool, template DB cloning
 │   ├── schema/             # pg_catalog & DDL schema parser (strict Pydantic)
 │   ├── sql/                # sqlglot Postgres AST parser & round-tripping
-│   └── verifier/           # AdversaryVerifier & fixed-random baseline verifier
-└── tests/                  # 121 automated unit & integration tests
+│   ├── verifier/           # AdversaryVerifier & fixed-random baseline verifier
+│   └── workload/           # pg_stat_statements parser, index consolidation, HypoPG
+└── tests/                  # 125 automated unit & integration tests
 ```
+
+---
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE).

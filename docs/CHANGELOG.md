@@ -2,6 +2,19 @@
 
 All notable changes to SQL Doctor (`sqld`) will be documented in this file.
 
+## [0.8.0-phase9] - 2026-11-27
+
+### Added
+- **Open-Source Polish**:
+  - Added Apache-2.0 `LICENSE`, GitHub Action PR SQL verifier (`.github/workflows/sql-verify.yml`), and animated terminal demo GIF (`docs/assets/demo.gif`) in `README.md`.
+- **Workload Mode (`sqldoctor.workload`)**:
+  - `parse_pg_stat_statements`: Parses JSON/CSV `pg_stat_statements` exports, filters non-optimizable statements, and ranks queries by `total_exec_time_ms`.
+  - `consolidate_indexes`: Deduplicates and merges prefix-redundant `CREATE INDEX` proposals across multiple queries.
+  - `HypoPGAdvisor`: Evaluates consolidated indexes across all top-$N$ workload queries using real `hypopg_create_index` + `EXPLAIN (FORMAT JSON)` when Docker PG17 is running (or deterministic offline fallback).
+  - `WorkloadAnalyzer` & `sqld workload`: Diagnoses top-$N$ queries under a global USD budget and emits a consolidated `WorkloadReport`.
+  - Added `examples/pg_stat_statements.json` and `tests/test_workload.py` (125/125 tests passing).
+
+
 ## [0.7.0-phase8] - 2026-11-27
 
 ### Added

@@ -1,0 +1,121 @@
+name: SQL Doctor PR Verifier
+
+on:
+  pull_request:
+    paths:
+      - "**/*.sql"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  verify-sql-changes:
+    name: Verify Modified SQL Queries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR and base branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install SQL Doctor
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Verify changed .sql files against base branch
+        id: sql_verify
+        run: |
+          python - << 'EOF'
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          base_ref = os.environ.get("GITHUB_BASE_REF")
+          changed_files: list[str] = []
+          if base_ref:
+              diff = subprocess.run(
+                  ["git", "diff", "--name-only", f"origin/{base_ref}...HEAD", "--", "*.sql"],
+                  capture_output=True,
+                  text=True,
+                  check=False,
+              )
+              changed_files = [f.strip() for f in diff.stdout.splitlines() if f.strip()]
+
+          summary_lines = ["## SQL Doctor PR Verification", ""]
+          failed = False
+
+          # Check paired query files (e.g. modified queries vs base version)
+          for fpath in changed_files:
+              p = Path(fpath)
+              if not p.is_file() or "schema" in p.name.lower() or "receipt" in p.name.lower():
+                  continue
+              if base_ref:
+                  base_show = subprocess.run(
+                      ["git", "show", f"origin/{base_ref}:{fpath}"],
+                      capture_output=True,
+                      text=True,
+                      check=False,
+                  )
+                  if base_show.returncode == 0 and base_show.stdout.strip():
+                      orig_tmp = Path("/tmp/base_query.sql")
+                      orig_tmp.write_text(base_show.stdout, encoding="utf-8")
+                      schema = "examples/schema.sql" if Path("examples/schema.sql").is_file() else "eval/demo_schema.sql"
+                      res = subprocess.run(
+                          ["sqld", "verify", str(orig_tmp), str(p), "--schema", schema],
+                          capture_output=True,
+                          text=True,
+                          check=False,
+                      )
+                      summary_lines.append(f"### `{fpath}` (exit code `{res.returncode}`)")
+                      summary_lines.append(f"```text\n{res.stdout.strip()}\n```")
+                      if res.returncode == 1:
+                          failed = True
+
+          # Always run built-in receipt replay sanity check
+          replay = subprocess.run(
+              ["sqld", "replay", "examples/receipt.sql"],
+              capture_output=True,
+              text=True,
+              check=False,
+          )
+          summary_lines.append("### Built-in Receipt Replay Check")
+          summary_lines.append(f"```text\n{replay.stdout.strip()}\n```")
+          if replay.returncode != 0:
+              failed = True
+
+          report_md = "\n".join(summary_lines)
+          Path("pr_sql_summary.md").write_text(report_md, encoding="utf-8")
+          step_summary = os.environ.get("GITHUB_STEP_SUMMARY")
+          if step_summary:
+              with open(step_summary, "a", encoding="utf-8") as fh:
+                  fh.write(report_md + "\n")
+
+          if failed:
+              sys.exit(1)
+          EOF
+
+      - name: Comment PR with SQL Doctor Verdict
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (!fs.existsSync('pr_sql_summary.md')) return;
+            const body = fs.readFileSync('pr_sql_summary.md', 'utf8');
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
