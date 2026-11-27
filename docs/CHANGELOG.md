@@ -2,6 +2,16 @@
 
 All notable changes to SQL Doctor (`sqld`) will be documented in this file.
 
+## [0.9.0-ui] - 2026-11-27
+
+### Added
+- **Local Lab Web UI (`sqld ui`) & GitHub Pages Showcase**:
+  - Added FastAPI backend (`sqldoctor.ui.server`) exposing `/api/health`, `/api/presets`, `/api/eval`, `/api/verify`, `/api/diagnose`, and `/api/workload`.
+  - Built self-contained Teletype + Vermilion + 1-Bit Dither frontend (`src/sqldoctor/ui/static/index.html`) with live Docker PG17 detection and `receipt.sql` export.
+  - Built static GitHub Pages interactive walkthrough & eval explorer (`docs/index.html`).
+  - Added `tests/test_ui.py` (129/129 tests passing).
+
+
 ## [0.8.0-phase9] - 2026-11-27
 
 ### Added
