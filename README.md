@@ -6,7 +6,7 @@
 
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17%20%2B%20HypoPG-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Tests](https://img.shields.io/badge/Tests-117%20Passing-2EA44F?logo=pytest&logoColor=white)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-121%20Passing-2EA44F?logo=pytest&logoColor=white)](tests/)
 [![Typed](https://img.shields.io/badge/mypy-strict-blue)](pyproject.toml)
 [![Lint](https://img.shields.io/badge/ruff-clean-purple)](pyproject.toml)
 
@@ -130,6 +130,25 @@ sqld up
 sqld down
 ```
 
+### 6. MCP Server for Coding Agents (`sqld mcp`)
+Expose `verify_rewrite`, `diagnose_query`, and `replay_receipt` over the Model Context Protocol (`stdio` or `sse`) so any coding agent can verify SQL before shipping it:
+
+```bash
+sqld mcp --transport stdio
+```
+
+Example `mcp_config.json` (Antigravity / Cursor / Claude Desktop):
+```json
+{
+  "mcpServers": {
+    "sqld": {
+      "command": "sqld",
+      "args": ["mcp", "--transport", "stdio"]
+    }
+  }
+}
+```
+
 ---
 
 ## Evaluation Suites (`sqld eval`)
@@ -155,10 +174,10 @@ sqld eval --suite all --baselines --ablations --out-dir eval/results
 ## Quality & Test Suite
 
 ```bash
-pytest -v                       # 117 unit & integration tests
+pytest -v                       # 121 unit & integration tests
 ruff check src eval tests       # Linter
 ruff format --check src eval tests
-mypy src eval tests             # Strict type checking across 63 source files
+mypy src eval tests             # Strict type checking across 67 source files
 ```
 
 ---
@@ -180,6 +199,7 @@ sqld/
 │   ├── compare/            # Multiset bag (EXCEPT ALL), order, NULL, float comparator
 │   ├── datagen/            # Topological constraint-aware seeded data generator
 │   ├── eval/               # Evaluation orchestrator & baseline/ablation runner
+│   ├── mcp/                # FastMCP server & Pydantic-validated tool handlers
 │   ├── mutate/             # sqlglot AST mutation engine & adequacy scoring
 │   ├── receipt/            # Standalone receipt.sql writer & replay verifier
 │   ├── report/             # Zero-dependency Jinja2 static HTML report generator
@@ -187,5 +207,5 @@ sqld/
 │   ├── schema/             # pg_catalog & DDL schema parser (strict Pydantic)
 │   ├── sql/                # sqlglot Postgres AST parser & round-tripping
 │   └── verifier/           # AdversaryVerifier & fixed-random baseline verifier
-└── tests/                  # 117 automated unit & integration tests
+└── tests/                  # 121 automated unit & integration tests
 ```

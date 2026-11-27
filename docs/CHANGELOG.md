@@ -2,6 +2,16 @@
 
 All notable changes to SQL Doctor (`sqld`) will be documented in this file.
 
+## [0.7.0-phase8] - 2026-11-27
+
+### Added
+- **Model Context Protocol (MCP) Server (`sqldoctor.mcp`)**:
+  - Added strict Pydantic-validated MCP tool handlers (`verify_rewrite_tool`, `diagnose_query_tool`, `replay_receipt_tool`) with path-traversal guards in `sqldoctor.mcp.tools`.
+  - Added FastMCP server (`sqldoctor.mcp.server`) supporting `stdio` and `sse` transports.
+  - Added `sqld mcp [--transport stdio|sse]` CLI command and `mcp>=1.2.0,<2.0.0` dependency.
+  - Added `tests/test_mcp.py` covering strict schema validation, path guards, receipt generation, and CLI help.
+
+
 ## [0.6.0-phase5] - 2026-11-25
 
 ### Added

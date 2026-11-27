@@ -531,5 +531,25 @@ def run_evaluation_cli(
         raise typer.Exit(code=1)
 
 
+@app.command("mcp")
+def run_mcp_cli(
+    transport: str = typer.Option(
+        "stdio", "--transport", "-t", help="MCP transport protocol: 'stdio' or 'sse'."
+    ),
+) -> None:
+    """Start the SQL Doctor MCP server exposing verify_rewrite, diagnose_query, and replay_receipt."""
+    from sqldoctor.mcp.server import run_mcp_server
+
+    if transport not in ("stdio", "sse"):
+        typer.secho(f"[-] Unsupported transport: {transport}", fg=typer.colors.RED)
+        raise typer.Exit(code=3)
+
+    try:
+        run_mcp_server(transport=transport)
+    except RuntimeError as exc:
+        typer.secho(f"[-] {exc}", fg=typer.colors.RED)
+        raise typer.Exit(code=3) from exc
+
+
 if __name__ == "__main__":
     app()
