@@ -155,22 +155,29 @@ class BenchmarkRunner:
                 try:
                     fuzzer = SeededDataGenerator(seed=self.seed)
                     dataset = fuzzer.generate_schema_data(schema=schema, rows_per_table=scale)
-                    # Clean and insert dataset into sandbox
-                    for tname in reversed(list(schema.tables.keys())):
-                        self.db_client.execute_script(f"TRUNCATE TABLE {tname} CASCADE;")
+                    # Ensure tables exist in sandbox before truncating and seeding
                     for tname, tmodel in schema.tables.items():
+                        col_defs = [
+                            f'"{cname}" {cmodel.data_type}'
+                            for cname, cmodel in tmodel.columns.items()
+                        ]
+                        self.db_client.execute_script(
+                            f'CREATE TABLE IF NOT EXISTS "{tname}" ({", ".join(col_defs)});'
+                        )
+                    for tname in reversed(list(schema.tables.keys())):
+                        self.db_client.execute_script(f'TRUNCATE TABLE "{tname}" CASCADE;')
+                    for tname in schema.tables:
                         rows = dataset.get(tname, [])
                         if rows:
                             cols = list(rows[0].keys())
-                            cols_str = ", ".join(cols)
-                            # Bulk copy or insert
+                            cols_str = ", ".join(f'"{c}"' for c in cols)
                             for r in rows:
                                 vals = [
                                     "NULL" if r[c] is None else f"'{str(r[c]).replace("'", "''")}'"
                                     for c in cols
                                 ]
                                 self.db_client.execute_script(
-                                    f"INSERT INTO {tname} ({cols_str}) VALUES ({', '.join(vals)});"
+                                    f'INSERT INTO "{tname}" ({cols_str}) VALUES ({", ".join(vals)});'
                                 )
                 except Exception as e:
                     logger.warning("Failed seeding scale %d in sandbox: %s", scale, e)

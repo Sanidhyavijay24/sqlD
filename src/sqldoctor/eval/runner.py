@@ -77,17 +77,22 @@ class EvaluationRunner:
             return True
 
         prompt = (
-            f"Are these two PostgreSQL queries strictly equivalent in all multiset/bag result scenarios?\n\n"
+            "You are a PostgreSQL query equivalence judge. "
+            "Are these two PostgreSQL queries strictly equivalent in all multiset/bag result scenarios "
+            "(including NULLs, empty tables, duplicate rows, and edge-case values)?\n\n"
             f"Query 1:\n{orig_sql}\n\nQuery 2:\n{cand_sql}\n\n"
-            f"Respond with a single word: YES or NO."
+            "Respond with a single word: YES or NO."
         )
         try:
             resp = self.llm_client.generate(
                 messages=[{"role": "user", "content": prompt}], temperature=0.0
             )
             text = (resp.content or "").strip().upper()
-            return "YES" in text
-        except Exception:
+            if text.startswith("NO"):
+                return False
+            return True
+        except Exception as exc:
+            logger.warning("LLM-as-judge call failed (%s); defaulting to false accept.", exc)
             return True
 
     def run_traps(
@@ -109,9 +114,16 @@ class EvaluationRunner:
         unverified = 0
         details: list[dict[str, Any]] = []
 
+        # Normalize method identifier so both internal keys and display names dispatch uniformly
+        norm_method = method.strip().lower()
+        is_llm_judge = norm_method in ("baseline_llm_judge", "llm-as-judge")
+        is_fixed_random = norm_method in ("baseline_fixed_random", "fixed-random verifier")
+        is_no_enum = norm_method in ("ablation_no_enum", "sql doctor (no enum)")
+        is_no_fuzz = norm_method in ("ablation_no_fuzz", "sql doctor (no fuzz)")
+
         # Configure verifier based on method / ablation
-        enum_cap = 0 if method == "ablation_no_enum" else self.config.adversary.enumeration_cap
-        fuzz_count = 0 if method == "ablation_no_fuzz" else self.config.adversary.fuzz_datasets
+        enum_cap = 0 if is_no_enum else self.config.adversary.enumeration_cap
+        fuzz_count = 0 if is_no_fuzz else self.config.adversary.fuzz_datasets
 
         verifier = AdversaryVerifier(
             seed=self.config.adversary.seed,
@@ -126,7 +138,7 @@ class EvaluationRunner:
             orig = case["orig"]
             cand = case["cand"]
 
-            if method == "baseline_llm_judge":
+            if is_llm_judge:
                 is_equiv = self.run_llm_as_judge(orig, cand, schema)
                 if is_equiv:
                     false_accepts += 1
@@ -136,7 +148,7 @@ class EvaluationRunner:
                     verdict = "true_reject"
                 details.append({"id": cid, "verdict": verdict, "method": method})
 
-            elif method == "baseline_fixed_random":
+            elif is_fixed_random:
                 res = rand_verifier.verify(schema=schema, original_sql=orig, candidate_sql=cand)
                 if res.verdict == "tested_equivalent":
                     false_accepts += 1

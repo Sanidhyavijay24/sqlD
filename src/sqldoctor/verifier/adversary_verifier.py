@@ -209,16 +209,43 @@ class AdversaryVerifier:
                 counterexample=evidence,
             )
 
-        # 4. Mutation adequacy scoring
+        # 4. Multi-dataset mutation adequacy scoring (evaluate survivors across up to 12 diverse datasets)
         mutants = self.mutator.generate_mutants(original_sql)
         score: MutationScore
         if mutants and all_datasets:
-            eval_ds = all_datasets[min(len(all_datasets) - 1, 5)]
-            baseline_rows, _ = self._execute_dataset(schema, eval_ds, original_sql, original_sql)
-            score = self.mutator.evaluate_adequacy(
-                mutants=mutants,
-                execute_fn=lambda q: self._execute_dataset(schema, eval_ds, q, q)[0],
-                original_output=baseline_rows,
+            step = max(1, len(all_datasets) // 12)
+            sample_datasets = all_datasets[::step][:12]
+            surviving = list(mutants)
+            killed_count = 0
+
+            for eval_ds in sample_datasets:
+                if not surviving:
+                    break
+                baseline_rows, _ = self._execute_dataset(
+                    schema, eval_ds, original_sql, original_sql
+                )
+
+                def _exec_on_ds(
+                    q: str, ds: dict[str, list[dict[str, Any]]] = eval_ds
+                ) -> list[tuple[Any, ...]]:
+                    return self._execute_dataset(schema, ds, q, q)[0]
+
+                ds_score = self.mutator.evaluate_adequacy(
+                    mutants=surviving,
+                    execute_fn=_exec_on_ds,
+                    original_output=baseline_rows,
+                )
+                killed_count += ds_score.killed_mutants
+                surviving_descs = set(ds_score.survived_descriptions)
+                surviving = [m for m in surviving if m.description in surviving_descs]
+
+            total_m = len(mutants)
+            score = MutationScore(
+                total_mutants=total_m,
+                killed_mutants=killed_count,
+                survived_mutants=total_m - killed_count,
+                score=round(killed_count / total_m, 4) if total_m > 0 else 1.0,
+                survived_descriptions=[m.description for m in surviving],
             )
         else:
             score = MutationScore(

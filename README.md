@@ -163,11 +163,14 @@ SQL Doctor ships with three benchmark suites under [`eval/suites/`](eval/suites/
 sqld eval --suite all --baselines --ablations --out-dir eval/results
 ```
 
-| Suite | Cases | SQL Doctor Result |
-| :--- | :---: | :--- |
-| **Trap Suite v2** (Known-Wrong Rewrites) | 50 | **0 False Accepts** (50/50 Rejected with minimal counterexamples) |
-| **Good Suite v2** (Equivalent Rewrites) | 30 | **0 False Rejects** (30/30 Accepted) |
-| **Performance Suite** (TPC-H Derived) | 30 | Multi-scale buffer & wall-time speedups logged to `eval/results/perf_results.json` |
+| Method / Suite | Cases | False Accepts | Accuracy |
+| :--- | :---: | :---: | :---: |
+| **SQL Doctor (Full)** — Trap Suite v2 | 50 | **0** | **100.0%** |
+| **LLM-as-judge (Gemini)** — Trap Suite v2 | 50 | 3 | 94.0% |
+| **SQL Doctor (No Enum Ablation)** — Trap Suite v2 | 50 | 3 | 94.0% |
+| **SQL Doctor (No Fuzz Ablation)** — Trap Suite v2 | 50 | 13 | 74.0% |
+| **SQL Doctor (Full)** — Good Suite v2 | 30 | 0 *(0 False Rejects)* | **100.0%** |
+| **Performance Suite** (TPC-H Derived) | 30 | — | Logged to `eval/results/perf_results.json` |
 
 ---
 

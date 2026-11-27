@@ -375,6 +375,7 @@ def benchmark_pair(
     import json
 
     from sqldoctor.bench.runner import BenchmarkRunner
+    from sqldoctor.sandbox.client import SandboxClient
     from sqldoctor.schema.loader import parse_ddl_to_schema
 
     orig_sql = original
@@ -395,7 +396,16 @@ def benchmark_pair(
     schema = parse_ddl_to_schema(ddl_sql)
     scale_list = [int(s.strip()) for s in scales.split(",") if s.strip()]
 
-    runner = BenchmarkRunner(scales=scale_list, repeats=repeats)
+    cfg = load_config(config_path)
+    db_client: SandboxClient | None = None
+    try:
+        candidate_client = SandboxClient(cfg.sandbox)
+        candidate_client.execute_query("SELECT 1;")
+        db_client = candidate_client
+    except Exception:
+        db_client = None
+
+    runner = BenchmarkRunner(db_client=db_client, scales=scale_list, repeats=repeats)
     report = runner.run_benchmark(original_sql=orig_sql, candidate_sql=cand_sql, schema=schema)
 
     if json_output:
