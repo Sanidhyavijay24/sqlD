@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SQL Doctor // Lab Workbench</title>
+  <style>
+    :root {
+      --paper: #F4F1EA;
+      --paper-alt: #EAE5DA;
+      --cream: #FFFDF8;
+      --ink: #111111;
+      --muted: #555555;
+      --vermilion: #E12D1C;
+      --vermilion-soft: #FCECE9;
+      --green: #15803D;
+      --green-soft: #EAF5EA;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      overflow-x: hidden;
+    }
+    body {
+      padding: clamp(8px, 1.5vw, 20px);
+      background: #E8E3D9;
+      color: var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: clamp(12px, 0.9vw, 14px);
+      line-height: 1.5;
+    }
+    .shell {
+      width: 100%;
+      max-width: 1680px;
+      min-height: calc(100vh - clamp(16px, 3vw, 40px));
+      margin: 0 auto;
+      border: 2px solid var(--ink);
+      background: var(--paper);
+      box-shadow: 6px 6px 0 var(--ink);
+      display: flex;
+      flex-direction: column;
+    }
+    .dither-strip {
+      height: 8px;
+      background-image:
+        linear-gradient(45deg, #111 25%, transparent 25%),
+        linear-gradient(-45deg, #111 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #111 75%),
+        linear-gradient(-45deg, transparent 75%, #111 75%);
+      background-size: 4px 4px;
+      background-position: 0 0, 0 2px, 2px -2px, -2px 0;
+    }
+    .dither-bg {
+      background-color: var(--paper-alt);
+      background-image: radial-gradient(rgba(17,17,17,0.16) 1px, transparent 1px);
+      background-size: 4px 4px;
+    }
+    .dither-vermilion {
+      background-color: var(--vermilion-soft);
+      background-image: radial-gradient(rgba(225,45,28,0.18) 1px, transparent 1px);
+      background-size: 4px 4px;
+    }
+    .dither-green {
+      background-color: var(--green-soft);
+      background-image: radial-gradient(rgba(21,128,61,0.18) 1px, transparent 1px);
+      background-size: 4px 4px;
+    }
+    .masthead {
+      display: grid;
+      grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+      border-top: 2px solid var(--ink);
+      border-bottom: 2px solid var(--ink);
+    }
+    .brand-box {
+      padding: 16px 18px;
+      border-right: 2px solid var(--ink);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .brand-left { display: flex; align-items: center; gap: 14px; }
+    .emblem {
+      border: 2px solid var(--ink);
+      background: var(--cream);
+      padding: 6px;
+      box-shadow: 2px 2px 0 var(--ink);
+      display: inline-flex;
+    }
+    .brand-title { font-family: system-ui, -apple-system, sans-serif; font-size: 24px; font-weight: 900; letter-spacing: -0.04em; line-height: 1; }
+    .brand-sub { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; }
+    .status-col { text-align: right; font-size: 11px; }
+    .pill { display: inline-block; padding: 2px 8px; background: var(--ink); color: var(--paper); font-weight: 700; }
+    .pill.online { background: var(--green); color: #fff; }
+    .tabs { display: grid; grid-template-columns: repeat(4, 1fr); }
+    .tab-btn {
+      border: 0;
+      border-right: 1px solid var(--ink);
+      background: var(--paper);
+      color: var(--ink);
+      padding: 12px;
+      text-align: left;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .tab-btn:last-child { border-right: 0; }
+    .tab-btn:hover { background: var(--paper-alt); }
+    .tab-btn.active { background: var(--ink); color: var(--paper); font-weight: 700; }
+    .tab-num { font-size: 11px; opacity: 0.65; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 8fr) minmax(300px, 4fr); flex: 1; }
+    .main-pane { border-right: 2px solid var(--ink); min-width: 0; display: flex; flex-direction: column; }
+    .receipt-pane { background: var(--cream); display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+    .ribbon {
+      padding: 10px 16px;
+      border-bottom: 2px solid var(--ink);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .btn {
+      border: 2px solid var(--ink);
+      background: var(--cream);
+      color: var(--ink);
+      padding: 6px 12px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 2px 2px 0 var(--ink);
+    }
+    .btn:active { transform: translate(2px, 2px); box-shadow: none; }
+    .btn-primary { background: var(--vermilion); color: #fff; }
+    .btn-dark { background: var(--ink); color: var(--paper); }
+    select, input {
+      border: 2px solid var(--ink);
+      background: var(--cream);
+      color: var(--ink);
+      padding: 5px 8px;
+      font-family: inherit;
+      font-size: 12px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      border: 1px solid var(--ink);
+      background: var(--cream);
+      color: var(--ink);
+      padding: 10px;
+      font-family: inherit;
+      font-size: 12px;
+      resize: vertical;
+    }
+    .split-2 { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 2px solid var(--ink); }
+    .pane-box { padding: 14px 16px; }
+    .pane-box.left-border { border-left: 2px solid var(--ink); }
+    .pane-hdr {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--ink);
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+      font-weight: 700;
+      font-size: 12px;
+    }
+    .telemetry { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 2px solid var(--ink); }
+    .tele-cell { padding: 12px 14px; border-right: 1px solid var(--ink); }
+    .tele-cell:last-child { border-right: 0; }
+    .tele-lbl { font-size: 11px; color: var(--muted); }
+    .tele-val { font-size: 18px; font-weight: 900; margin-top: 2px; }
+    .verdict-rejected { background: var(--vermilion); color: #fff; }
+    .verdict-ok { background: var(--green); color: #fff; }
+    .verdict-neutral { background: var(--ink); color: var(--paper); }
+    .receipt-inner { padding: 16px; font-size: 12px; overflow-y: auto; max-height: 75vh; }
+    .receipt-hdr {
+      border-bottom: 2px dashed var(--ink);
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-weight: 900;
+    }
+    .badge-verdict {
+      padding: 2px 6px;
+      font-size: 11px;
+      border: 1px solid var(--ink);
+      background: var(--paper-alt);
+      word-break: break-word;
+    }
+    .badge-verdict.ok { background: var(--green); color: #fff; }
+    .badge-verdict.bad { background: var(--vermilion); color: #fff; }
+    .agent-notes h4 {
+      margin: 12px 0 4px 0;
+      padding-bottom: 2px;
+      border-bottom: 1px solid var(--ink);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .agent-notes p { margin: 6px 0; }
+    .agent-notes ul { margin: 6px 0; padding-left: 18px; }
+    .agent-notes li { margin: 4px 0; }
+    .agent-notes code {
+      background: var(--paper-alt);
+      border: 1px solid #ccc6b8;
+      padding: 0 4px;
+      font-size: 11px;
+    }
+    .agent-notes pre {
+      background: var(--paper);
+      border: 1px solid var(--ink);
+      padding: 8px;
+      margin: 6px 0;
+      font-size: 11px;
+    }
+    .proof-box {
+      border: 2px solid var(--ink);
+      background: var(--paper);
+      padding: 10px;
+      box-shadow: 2px 2px 0 var(--ink);
+      margin: 10px 0;
+      word-break: break-word;
+    }
+    .receipt-foot {
+      padding: 14px 18px;
+      border-top: 2px dashed var(--ink);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .hidden { display: none !important; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { border: 1px solid var(--ink); padding: 7px 10px; text-align: left; }
+    th { background: var(--paper-alt); }
+    pre { margin: 0; white-space: pre-wrap; word-break: break-word; }
+    @media (max-width: 900px) {
+      .masthead, .workspace, .split-2, .telemetry { grid-template-columns: 1fr; }
+      .brand-box, .main-pane, .pane-box.left-border { border-right: 0; border-left: 0; }
+      .brand-box, .main-pane { border-bottom: 2px solid var(--ink); }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="dither-strip"></div>
+
+    <!-- Masthead -->
+    <div class="masthead">
+      <div class="brand-box">
+        <div class="brand-left">
+          <div class="emblem">
+            <svg width="32" height="32" viewBox="0 0 16 16" shape-rendering="crispEdges">
+              <rect x="6" y="1" width="4" height="2" fill="#111111"/>
+              <rect x="7" y="3" width="2" height="3" fill="#111111"/>
+              <rect x="5" y="6" width="6" height="2" fill="#111111"/>
+              <rect x="4" y="8" width="8" height="2" fill="#E12D1C"/>
+              <rect x="3" y="10" width="10" height="3" fill="#E12D1C"/>
+              <rect x="5" y="10" width="2" height="1" fill="#FFFDF8"/>
+              <rect x="2" y="13" width="12" height="2" fill="#111111"/>
+            </svg>
+          </div>
+          <div>
+            <div class="brand-sub">LOCAL LAB WORKBENCH // DETERMINISTIC VERIFIER</div>
+            <div class="brand-title">SQL DOCTOR <span style="color:var(--vermilion)">// LAB</span></div>
+          </div>
+        </div>
+        <div class="status-col">
+          <div><span id="sb-pill" class="pill">CHECKING SANDBOX...</span></div>
+          <div id="model-info" style="margin-top:4px;color:var(--muted)">MODEL: --</div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" id="tab-verify" onclick="setTab('verify')"><span class="tab-num">01</span><span>VERIFY</span></button>
+        <button class="tab-btn" id="tab-diagnose" onclick="setTab('diagnose')"><span class="tab-num">02</span><span>DIAGNOSE</span></button>
+        <button class="tab-btn" id="tab-workload" onclick="setTab('workload')"><span class="tab-num">03</span><span>WORKLOAD</span></button>
+        <button class="tab-btn" id="tab-eval" onclick="setTab('eval')"><span class="tab-num">04</span><span>50-TRAP</span></button>
+      </div>
+    </div>
+
+    <!-- TAB 1: VERIFY -->
+    <div id="panel-verify" class="workspace">
+      <div class="main-pane">
+        <div class="ribbon dither-bg">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <label for="verify-preset" style="background:var(--cream);border:1px solid var(--ink);padding:4px 8px;font-weight:700;">PRESET:</label>
+            <select id="verify-preset" onchange="applyVerifyPreset()"></select>
+          </div>
+          <button class="btn btn-primary" onclick="runVerify()">[RUN ADVERSARY -&gt;]</button>
+        </div>
+
+        <div style="padding:12px 16px;border-bottom:2px solid var(--ink);background:var(--cream);">
+          <div class="pane-hdr"><span>SCHEMA DDL</span><span style="color:var(--muted)">PostgreSQL</span></div>
+          <textarea id="v-schema" style="min-height:80px;"></textarea>
+        </div>
+
+        <div class="split-2">
+          <div class="pane-box" style="background:var(--cream);">
+            <div class="pane-hdr"><span>A // ORIGINAL SQL</span><span style="color:var(--muted)">BASELINE</span></div>
+            <textarea id="v-orig"></textarea>
+          </div>
+          <div id="v-cand-wrap" class="pane-box left-border dither-vermilion">
+            <div class="pane-hdr"><span>B // CANDIDATE REWRITE</span><span id="v-cand-tag" style="background:var(--ink);color:var(--paper);padding:0 6px;">READY</span></div>
+            <textarea id="v-cand"></textarea>
+          </div>
+        </div>
+
+        <div class="telemetry">
+          <div class="tele-cell"><div class="tele-lbl">ENUMERATED</div><div id="v-enum" class="tele-val">--</div></div>
+          <div class="tele-cell"><div class="tele-lbl">FUZZED</div><div id="v-fuzz" class="tele-val">--</div></div>
+          <div class="tele-cell"><div class="tele-lbl">MUTATION</div><div id="v-mut" class="tele-val">--</div></div>
+          <div id="v-verdict-cell" class="tele-cell verdict-neutral"><div class="tele-lbl" style="color:inherit;opacity:0.8">VERDICT</div><div id="v-verdict" class="tele-val">IDLE</div></div>
+        </div>
+      </div>
+
+      <div class="receipt-pane">
+        <div class="receipt-inner">
+          <div class="receipt-hdr"><span>*** PROOF RECEIPT ***</span><span id="v-seed">SEED: --</span></div>
+          <div id="v-receipt-content">
+            <div style="color:var(--muted)">Run verification to inspect counterexamples or equivalence proof.</div>
+          </div>
+        </div>
+        <div class="receipt-foot">
+          <button class="btn" onclick="downloadReceipt('verify')">EXPORT RECEIPT.SQL</button>
+          <span id="v-exit" style="font-weight:700">EXIT: --</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: DIAGNOSE -->
+    <div id="panel-diagnose" class="workspace hidden">
+      <div class="main-pane">
+        <div class="ribbon dither-bg">
+          <span style="background:var(--cream);border:1px solid var(--ink);padding:4px 8px;font-weight:700;">CLOSED-LOOP LLM AGENT + ADVERSARY</span>
+          <button class="btn btn-primary" onclick="runDiagnose()">[RUN AGENT LOOP -&gt;]</button>
+        </div>
+        <div class="split-2">
+          <div class="pane-box" style="background:var(--cream);">
+            <div class="pane-hdr"><span>SCHEMA DDL</span></div>
+            <textarea id="d-schema"></textarea>
+          </div>
+          <div class="pane-box left-border" style="background:var(--cream);">
+            <div class="pane-hdr"><span>SLOW QUERY INPUT</span></div>
+            <textarea id="d-query"></textarea>
+          </div>
+        </div>
+        <div class="pane-box" style="background:var(--cream);border-bottom:2px solid var(--ink);">
+          <div class="pane-hdr"><span>RECOMMENDED REWRITE &amp; COVERING INDEXES</span><span id="d-cost">COST: --</span></div>
+          <pre id="d-output" style="font-size:12px;">Click [RUN AGENT LOOP ->] to propose rewrites and verify deterministically.</pre>
+        </div>
+      </div>
+
+      <div class="receipt-pane">
+        <div class="receipt-inner">
+          <div class="receipt-hdr"><span>*** AGENT RECEIPT ***</span><span id="d-verdict-badge" class="badge-verdict">IDLE</span></div>
+          <div id="d-receipt-content" style="color:var(--muted)">Awaiting agent run...</div>
+        </div>
+        <div class="receipt-foot">
+          <button class="btn" onclick="downloadReceipt('diagnose')">EXPORT RECEIPT.SQL</button>
+          <span style="font-weight:700">CACHED: SHA-256</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: WORKLOAD -->
+    <div id="panel-workload" class="workspace hidden">
+      <div class="main-pane">
+        <div class="ribbon dither-bg">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <label style="background:var(--cream);border:1px solid var(--ink);padding:3px 6px;">TOP N: <input id="w-top" type="number" value="3" min="1" max="10" style="width:55px;border:0;border-bottom:1px solid var(--ink);padding:2px;"/></label>
+            <label style="background:var(--cream);border:1px solid var(--ink);padding:3px 6px;">BUDGET $: <input id="w-budget" type="number" value="0.50" step="0.1" style="width:70px;border:0;border-bottom:1px solid var(--ink);padding:2px;"/></label>
+          </div>
+          <button class="btn btn-primary" onclick="runWorkload()">[ANALYZE WORKLOAD -&gt;]</button>
+        </div>
+        <div class="split-2">
+          <div class="pane-box" style="background:var(--cream);">
+            <div class="pane-hdr"><span>SCHEMA DDL</span></div>
+            <textarea id="w-schema"></textarea>
+          </div>
+          <div class="pane-box left-border" style="background:var(--cream);">
+            <div class="pane-hdr"><span>PG_STAT_STATEMENTS (JSON / CSV)</span></div>
+            <textarea id="w-stats"></textarea>
+          </div>
+        </div>
+        <div class="pane-box" style="background:var(--cream);">
+          <div class="pane-hdr"><span>CONSOLIDATED INDEXES &amp; HYPOPG STATUS</span></div>
+          <div id="w-output" style="font-size:12px;">Click [ANALYZE WORKLOAD ->] to rank queries and consolidate indexes.</div>
+        </div>
+      </div>
+
+      <div class="receipt-pane">
+        <div class="receipt-inner">
+          <div class="receipt-hdr"><span>*** WORKLOAD LEDGER ***</span><span>PHASE 9</span></div>
+          <div id="w-summary" style="color:var(--muted)">Uses live Docker PG17 HypoPG when `sqld up` is active, or offline heuristic otherwise.</div>
+        </div>
+        <div class="receipt-foot">
+          <span style="font-weight:700">CONSOLIDATED SET</span>
+          <span>HYPOPG 1.4.5</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: 50-TRAP EVAL -->
+    <div id="panel-eval" style="padding:18px;background:var(--cream);" class="hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h2 style="margin:0;font-size:16px;">EVALUATION LEDGER // TRAP SUITE V2 (50) &amp; GOOD SUITE V2 (30)</h2>
+        <span class="pill online">RELEASE GATE: 0 FALSE ACCEPTS</span>
+      </div>
+      <div id="eval-table-wrap">Loading evaluation results...</div>
+    </div>
+
+    <div class="dither-strip" style="border-top:2px solid var(--ink);"></div>
+  </div>
+
+  <script>
+    let presets = null;
+    let lastVerifyReceipt = "";
+    let lastDiagnoseReceipt = "";
+
+    function setTab(name) {
+      ['verify', 'diagnose', 'workload', 'eval'].forEach(t => {
+        document.getElementById('panel-' + t).classList.toggle('hidden', t !== name);
+        document.getElementById('tab-' + t).classList.toggle('active', t === name);
+      });
+    }
+
+    async function init() {
+      const h = await (await fetch('/api/health')).json();
+      const sb = document.getElementById('sb-pill');
+      sb.textContent = h.pg_sandbox_online ? 'PG17 SANDBOX: ONLINE' : 'SANDBOX: IN-MEMORY';
+      if (h.pg_sandbox_online) sb.classList.add('online');
+      document.getElementById('model-info').textContent = `MODEL: ${h.model} (${h.gemini_configured ? 'KEY READY' : 'NO KEY'})`;
+
+      presets = await (await fetch('/api/presets')).json();
+      const sel = document.getElementById('verify-preset');
+      presets.verify_presets.forEach((p, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = p.label;
+        sel.appendChild(opt);
+      });
+      applyVerifyPreset();
+
+      document.getElementById('d-schema').value = presets.diagnose_preset.schema_ddl;
+      document.getElementById('d-query').value = presets.diagnose_preset.query_sql;
+      document.getElementById('w-schema').value = presets.workload_preset.schema_ddl;
+      document.getElementById('w-stats').value = presets.workload_preset.stats_export;
+
+      const ev = await (await fetch('/api/eval')).json();
+      renderEval(ev);
+    }
+
+    function applyVerifyPreset() {
+      const idx = document.getElementById('verify-preset').value || 0;
+      const p = presets.verify_presets[idx];
+      document.getElementById('v-schema').value = p.schema_ddl;
+      document.getElementById('v-orig').value = p.original_sql;
+      document.getElementById('v-cand').value = p.candidate_sql;
+    }
+
+    async function runVerify() {
+      document.getElementById('v-verdict').textContent = 'RUNNING...';
+      const res = await fetch('/api/verify', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          schema_ddl: document.getElementById('v-schema').value,
+          original_sql: document.getElementById('v-orig').value,
+          candidate_sql: document.getElementById('v-cand').value,
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.detail || 'Error'); return; }
+      const r = data.report;
+      lastVerifyReceipt = data.receipt_sql || '';
+      document.getElementById('v-enum').textContent = r.datasets.enumerated + ' DBs';
+      document.getElementById('v-fuzz').textContent = r.datasets.fuzz + ' DBs';
+      document.getElementById('v-mut').textContent = Math.round((r.mutants.score ?? 1) * 100) + '%';
+      document.getElementById('v-seed').textContent = 'SEED: ' + r.seed;
+
+      const cell = document.getElementById('v-verdict-cell');
+      const wrap = document.getElementById('v-cand-wrap');
+      const vText = r.verdict.toUpperCase();
+      document.getElementById('v-verdict').textContent = vText;
+      if (r.verdict === 'rejected') {
+        cell.className = 'tele-cell verdict-rejected';
+        wrap.className = 'pane-box left-border dither-vermilion';
+        document.getElementById('v-cand-tag').textContent = 'DIVERGED';
+        document.getElementById('v-exit').textContent = 'EXIT: 1';
+        const ce = r.counterexample || {};
+        document.getElementById('v-receipt-content').innerHTML = `
+          <div><b>REASON:</b> ${ce.reason || 'Mismatch'}</div>
+          <div class="proof-box"><div><b>MINIMAL COUNTEREXAMPLE:</b></div><pre>${JSON.stringify(ce.dataset || {}, null, 2)}</pre></div>
+          <div><b>ORIG:</b> ${JSON.stringify(ce.original_output)}</div>
+          <div style="color:var(--vermilion);font-weight:700;"><b>CAND:</b> ${JSON.stringify(ce.candidate_output)}</div>`;
+      } else {
+        cell.className = 'tele-cell verdict-ok';
+        wrap.className = 'pane-box left-border dither-green';
+        document.getElementById('v-cand-tag').textContent = 'MATCHED';
+        document.getElementById('v-exit').textContent = 'EXIT: 0';
+        document.getElementById('v-receipt-content').innerHTML = `
+          <div style="color:var(--green);font-weight:700;">0 MULTISET DISPARITIES</div>
+          <div class="proof-box">All ${r.datasets.enumerated + r.datasets.fuzz} datasets returned identical multisets.</div>`;
+      }
+    }
+
+    function formatAgentNotes(md) {
+      if (!md) return '<p>Verified via AdversaryVerifier.</p>';
+      const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const blocks = [];
+      let text = esc(md).replace(/```[a-zA-Z]*\s*([\s\S]*?)```/g, (_, code) => {
+        blocks.push(`<pre>${code.trim()}</pre>`);
+        return `@@BLOCK_${blocks.length - 1}@@`;
+      });
+      const lines = text.split(/\r?\n/);
+      let html = '';
+      let inList = false;
+      for (let line of lines) {
+        line = line.trim();
+        if (!line) {
+          if (inList) { html += '</ul>'; inList = false; }
+          continue;
+        }
+        if (line.startsWith('@@BLOCK_')) {
+          if (inList) { html += '</ul>'; inList = false; }
+          const idx = parseInt(line.replace('@@BLOCK_', '').replace('@@', ''), 10);
+          html += blocks[idx] || '';
+          continue;
+        }
+        line = line
+          .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+          .replace(/`([^`]+)`/g, '<code>$1</code>');
+        if (/^#{1,4}\s+/.test(line)) {
+          if (inList) { html += '</ul>'; inList = false; }
+          html += `<h4>${line.replace(/^#{1,4}\s+/, '')}</h4>`;
+        } else if (/^[\*\-]\s+/.test(line)) {
+          if (!inList) { html += '<ul>'; inList = true; }
+          html += `<li>${line.replace(/^[\*\-]\s+/, '')}</li>`;
+        } else {
+          if (inList) { html += '</ul>'; inList = false; }
+          html += `<p>${line}</p>`;
+        }
+      }
+      if (inList) html += '</ul>';
+      return html;
+    }
+
+    async function runDiagnose() {
+      document.getElementById('d-output').textContent = 'Running Gemini agent + deterministic adversary...';
+      const res = await fetch('/api/diagnose', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          schema_ddl: document.getElementById('d-schema').value,
+          query_sql: document.getElementById('d-query').value,
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) { document.getElementById('d-output').textContent = data.detail; return; }
+      const r = data.result;
+      lastDiagnoseReceipt = data.receipt_sql || '';
+      document.getElementById('d-cost').textContent = 'COST: $' + (r.total_cost_usd || 0).toFixed(4);
+      const badge = document.getElementById('d-verdict-badge');
+      badge.textContent = r.verdict.toUpperCase();
+      badge.className = 'badge-verdict ' + (r.verdict === 'rejected' ? 'bad' : 'ok');
+
+      const idxList = (r.proposed_indexes || []).map(i => i.index_sql).join('\n');
+      document.getElementById('d-output').textContent =
+        `[REWRITE]\n${r.best_candidate || '(none)'}\n\n[PROPOSED INDEXES]\n${idxList || '(none)'}`;
+
+      const vc = (r.verified_candidates && r.verified_candidates[0]) || null;
+      const dsInfo = vc && vc.report && vc.report.datasets
+        ? `${(vc.report.datasets.enumerated || 0) + (vc.report.datasets.fuzz || 0)} datasets`
+        : 'verified';
+      const mutInfo = vc ? `${Math.round((vc.mutation_score || 0) * 100)}%` : '--';
+
+      document.getElementById('d-receipt-content').innerHTML = `
+        <div class="proof-box" style="margin-top:0;">
+          <div style="display:flex;justify-content:space-between;"><span><b>VERDICT:</b> ${r.verdict.toUpperCase()}</span><span><b>COST:</b> $${(r.total_cost_usd || 0).toFixed(4)}</span></div>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;color:var(--muted);"><span>CHECKED: ${dsInfo}</span><span>MUTATION: ${mutInfo}</span></div>
+        </div>
+        <div class="agent-notes" style="color:var(--ink);">${formatAgentNotes(r.final_explanation)}</div>`;
+    }
+
+    async function runWorkload() {
+      document.getElementById('w-output').textContent = 'Ranking queries & checking indexes...';
+      const res = await fetch('/api/workload', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          schema_ddl: document.getElementById('w-schema').value,
+          stats_export: document.getElementById('w-stats').value,
+          top_n: parseInt(document.getElementById('w-top').value || '3', 10),
+          budget_usd: parseFloat(document.getElementById('w-budget').value || '0.5'),
+        })
+      });
+      const r = await res.json();
+      if (!res.ok) { document.getElementById('w-output').textContent = r.detail; return; }
+      document.getElementById('w-summary').innerHTML = `<div class="proof-box">${r.summary}</div>`;
+      const rows = (r.consolidated_indexes || []).map(c =>
+        `<tr><td><code>${c.index_sql}</code></td><td>${c.helped_queries.join(', ')}</td><td>${c.verified_in_sandbox ? 'HypoPG Live' : 'Offline'}</td></tr>`
+      ).join('');
+      document.getElementById('w-output').innerHTML = `<table><thead><tr><th>Consolidated Index</th><th>Helped Queries</th><th>Mode</th></tr></thead><tbody>${rows || '<tr><td colspan="3">No indexes proposed</td></tr>'}</tbody></table>`;
+    }
+
+    function renderEval(ev) {
+      const trap = ev.trap || {};
+      const good = ev.good || {};
+      let html = `<table><thead><tr><th>Method / Evaluator</th><th>Suite</th><th>Cases</th><th>False Accepts</th><th>Accuracy</th></tr></thead><tbody>`;
+      Object.entries(trap).forEach(([name, s]) => {
+        html += `<tr><td><b>${name}</b></td><td>Trap Suite v2</td><td>${s.total_cases}</td><td style="color:${s.false_accepts === 0 ? 'var(--green)' : 'var(--vermilion)'};font-weight:700">${s.false_accepts}</td><td>${s.accuracy}%</td></tr>`;
+      });
+      if (good.total_cases) {
+        html += `<tr><td><b>SQL Doctor (Full)</b></td><td>Good Suite v2</td><td>${good.total_cases}</td><td>0 (FR: ${good.false_rejects})</td><td>${good.accuracy}%</td></tr>`;
+      }
+      html += `</tbody></table>`;
+      document.getElementById('eval-table-wrap').innerHTML = html;
+    }
+
+    function downloadReceipt(which) {
+      const txt = which === 'diagnose' ? lastDiagnoseReceipt : lastVerifyReceipt;
+      if (!txt) { alert('Run verification first to generate a receipt.'); return; }
+      const blob = new Blob([txt], {type: 'text/sql'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `sqld_${which}_receipt.sql`;
+      a.click();
+    }
+
+    init();
+  </script>
+</body>
+</html>

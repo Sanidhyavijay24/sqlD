@@ -633,5 +633,24 @@ def run_workload_cli(
                 )
 
 
+@app.command("ui")
+def run_ui_cli(
+    host: str = typer.Option("127.0.0.1", "--host", help="Bind host for local web UI."),
+    port: int = typer.Option(8000, "--port", "-p", help="Port for local web UI."),
+    no_browser: bool = typer.Option(
+        False, "--no-browser", help="Do not automatically open the browser."
+    ),
+) -> None:
+    """Launch the local Teletype + Dither web UI (FastAPI) for interactive demos."""
+    from sqldoctor.ui.server import run_ui_server
+
+    typer.echo(f"Starting SQL Doctor Lab UI at http://{host}:{port} ...")
+    try:
+        run_ui_server(host=host, port=port, open_browser=not no_browser)
+    except RuntimeError as exc:
+        typer.secho(f"[-] {exc}", fg=typer.colors.RED)
+        raise typer.Exit(code=3) from exc
+
+
 if __name__ == "__main__":
     app()
